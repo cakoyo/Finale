@@ -1,4 +1,4 @@
-name: RegionAPI
-main: moe.kira.region.api.plugin.RegionPlugin
+name: Finale
+main: moe.kira.finale.plugin.FinalePlugin
 version: 1
 author: Sotr
