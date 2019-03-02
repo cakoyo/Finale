@@ -7,7 +7,8 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.lang.reflect.Proxy;
 import java.util.Arrays;
-import java.util.List;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
@@ -16,8 +17,10 @@ import org.bukkit.event.EventPriority;
 import org.bukkit.plugin.AuthorNagException;
 
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 
 import lombok.SneakyThrows;
+import lombok.val;
 import lombok.experimental.UtilityClass;
 
 @UtilityClass
@@ -59,16 +62,16 @@ public class Unsafe {
     
     @SneakyThrows
     private static EventPriority newPriorityEnum(String name, int priority) {
-        Method newInstanceMethod = EventPriority.class.getMethod("newInstance", Object[].class);
+        val newInstanceMethod = EventPriority.class.getMethod("newInstance", Object[].class);
         newInstanceMethod.setAccessible(true);
         return EventPriority.class.cast(newInstanceMethod.invoke(CONSTRUCTUR_ACCESSOR, name, priority, priority));
     }
     
     public static EventPriority modifyMethodPriority(Method handlerMethod, String name, int priority) {
         if (Modifier.isPublic(handlerMethod.getModifiers()))
-            throw new AuthorNagException("THe public method accessor is illegal.");
+            throw new AuthorNagException("The public access modifier is illegal.");
         
-        EventHandler handler = Optional.ofNullable(handlerMethod.getAnnotation(EventHandler.class))
+        val handler = Optional.ofNullable(handlerMethod.getAnnotation(EventHandler.class))
         .orElse(handlerMethod.getDeclaredAnnotation(EventHandler.class));
         
         return modifyHandlerPriority(handler, newPriorityEnum(name, priority)).priority();
@@ -76,23 +79,24 @@ public class Unsafe {
     
     @SneakyThrows
     private static EventHandler modifyHandlerPriority(EventHandler handler, EventPriority newPriority) {
-        InvocationHandler invocationHandler = Proxy.getInvocationHandler(handler);
-        Field memberValuesField = InvocationHandler.class.getDeclaredField("memberValues");
+        val invocationHandler = Proxy.getInvocationHandler(handler);
+        val memberValuesField = InvocationHandler.class.getDeclaredField("memberValues");
         memberValuesField.setAccessible(true);
-        ((Map<String, Object>) memberValuesField.get(invocationHandler)).put("priority", newPriority);
+        val putMethod = Map.class.getDeclaredMethod("put", Object.class, Object.class);
+        putMethod.invoke(Map.class.cast(memberValuesField.get(invocationHandler)), "priority", newPriority);
         return handler;
     }
     
     @SneakyThrows
     public static EventPriority injectPriorityEnum(EventPriority newPriority) {
-        Field valuesField = EventPriority.class.getDeclaredField("$VALUES");
+        val valuesField = EventPriority.class.getDeclaredField("$VALUES");
         valuesField.setAccessible(true);
         
-        Field modifiersField = Field.class.getDeclaredField("modifiers");
+        val modifiersField = Field.class.getDeclaredField("modifiers");
         modifiersField.setAccessible(true);
         modifiersField.setInt(valuesField, valuesField.getModifiers() & ~Modifier.FINAL);
         
-        List<EventPriority> newValues = Lists.newArrayList(EventPriority.values());
+        val newValues = Lists.newArrayList(EventPriority.values());
         newValues.add(newPriority);
         valuesField.set(EventPriority.class, newValues.toArray(new EventPriority[newValues.size()]));
         
