@@ -1,6 +1,5 @@
 package moe.kira.finale.api.misc;
 
-
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationHandler;
